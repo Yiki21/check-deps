@@ -1,9 +1,46 @@
 server:
   port: 8080
-postgres:
-  host: localhost
+database:
+  host: database
   port: 5432
   database: mydb
   user: myuser
   password: mypassword
   schema: public
+jwt:
+  secret: "please_change_me"
+  expiration_seconds: 3600
+  audience: "check-deps"
+  issuer: "check-deps"
+  algorithm: "HS256"
+s3:
+  enabled: false
+  bucket: ""
+  region: "us-east-1"
+  access_key_id: ""
+  secret_access_key: ""
+  endpoint: ""
+  prefix: ""
+neo4j:
+  enabled: true
+  uri: bolt://neo4j:7687
+  username: "neo4j"
+  password: "mypassword"
+  database: neo4j
+auth:
+  allow_list:
+    - "/api/login"
+  userless: true
+languages:
+  full:
+    enabled: true
+    cdxgen_url: http://cdxgen:9090
+  # java:
+  #   enabled: true
+  #   cdxgen_url: http://cdxgen-java:8080
+  # node:
+  #   enabled: true
+  #   cdxgen_url: http://cdxgen-node:8080
+  # python:
+  #   enabled: true
+  #   cdxgen_url: http://cdxgen-python:8080

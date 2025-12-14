@@ -2,9 +2,15 @@ use std::cmp::max;
 
 use crate::config;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, Statement};
+use tracing::info_span;
 
 pub async fn init() -> anyhow::Result<DatabaseConnection> {
     let config = config::get().database();
+
+    info_span!("Connecting to database").in_scope(|| {
+        tracing::info!("Connecting to database at {}:{}", config.host(), config.port());
+    });
+
     let mut options = ConnectOptions::new(format!(
         "postgres://{}:{}@{}:{}/{}",
         config.username(),
@@ -32,6 +38,7 @@ pub async fn init() -> anyhow::Result<DatabaseConnection> {
 
     Ok(db)
 }
+
 
 async fn log_db_version(db: &DatabaseConnection) -> anyhow::Result<()> {
     let version = db

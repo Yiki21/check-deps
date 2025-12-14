@@ -1,21 +1,86 @@
 services:
   backend:
     build:
-      dockerfile: ./Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        BUILD_PROFILE: ${BUILD_PROFILE:-release}
     ports:
-      - "8080:8080"
-    volumes:
-      - ./backend:/app
+      - "${APP_SERVER_PORT:-8080}:${APP_SERVER_PORT:-8080}"
+    environment:
+      APP_SERVER_PORT: ${APP_SERVER_PORT:-8080}
+      APP_DATABASE_HOST: ${APP_DATABASE_HOST:-database}
+      APP_DATABASE_PORT: ${APP_DATABASE_PORT:-5432}
+      APP_DATABASE_USERNAME: ${APP_DATABASE_USERNAME:-myuser}
+      APP_DATABASE_PASSWORD: ${APP_DATABASE_PASSWORD:-mypassword}
+      APP_DATABASE_DATABASE: ${APP_DATABASE_DATABASE:-mydb}
+      APP_DATABASE_SCHEMA: ${APP_DATABASE_SCHEMA:-public}
+      APP_NEO4J_URI: ${NEO4J_URI:-bolt://neo4j:7687}
+      APP_NEO4J_USERNAME: ${NEO4J_USERNAME:-neo4j}
+      APP_NEO4J_PASSWORD: ${NEO4J_PASSWORD:-mypassword}
+      RUST_LOG: ${RUST_LOG:-info}
     depends_on:
       - database
+      - neo4j
 
   database:
     image: postgres:18.1
     environment:
-      POSTGRES_DB: mydb
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: ${POSTGRES_DB:-mydb}
+      POSTGRES_USER: ${POSTGRES_USER:-myuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./pgdata:/var/lib/postgresql
+
+
+  neo4j:
+    image: neo4j:latest
+    environment:
+      NEO4J_AUTH: ${NEO4J_AUTH:-neo4j/mypassword}
+    ports:
+      - "${NEO4J_BOLT_PORT:-7687}:${NEO4J_BOLT_PORT:-7687}"
+      - "${NEO4J_HTTP_PORT:-7474}:${NEO4J_HTTP_PORT:-7474}"
+    volumes:
+      - ./neo4jdata:/data
+
+
+  cdxgen:
+    profiles:
+      - full
+    image: ghcr.io/cyclonedx/cdxgen:master
+    volumes:
+      - ./cdxgendata:/app:rw
+    working_dir: /app
+    command: ["--server", "--server-port", "9090", "--server-host", "0.0.0.0"]
+
+
+  cdxgen-java:
+    profiles:
+      - java
+    image: cdxgen-temurin-java21:latest
+    volumes:
+      - ./cdxgenjavadata:/app:rw
+    working_dir: /app
+    command: ["--server", "--server-port", "8080", "--server-host", "0.0.0.0"]
+
+
+  cdxgen-node:
+    profiles:
+      - node
+    image: cdxgen-alpine-node24:latest
+    volumes:
+      - ./cdxgennodedata:/app:rw
+    working_dir: /app
+    command: ["--server", "--server-port", "8080", "--server-host", "0.0.0.0"]
+
+
+  cdxgen-python:
+    profiles:
+      - python
+    image: cdxgen-python:latest
+    volumes:
+      - ./cdxgenpydata:/app:rw
+    working_dir: /app
+    command: ["--server", "--server-port", "8080", "--server-host", "0.0.0.0"]
